@@ -1,6 +1,8 @@
 
 import simpy
 import random
+import statistics
+import matplotlib.pyplot as plt
 
 Seed = 30
 AvailableRAM = 100
@@ -42,4 +44,44 @@ def process(env, RAM, CPU, time):
 def processGenerator(env, RAM, CPU, interval, numOfProcess, time):
     for i in range(numOfProcess):
         yield env.timeout(random.expovariate(1.0 / interval))
-        env.process(process(env, f"P{i}", RAM, CPU, time))
+        env.process(process(env, RAM, CPU, time))
+        
+def runSimulation (numOfProcess, interval, RAM=100, availableCPU=1, instructionsPerLoop=3):
+
+    global InstructionsPerLoop
+    InstructionsPerLoop = instructionsPerLoop
+
+    env = simpy.Environment()
+    RAM = simpy.Container(env, init=RAM, capacity=RAM)
+    CPU = simpy.Resource(env, capacity=availableCPU)
+
+    time = []
+
+    env.process(processGenerator(env, RAM, CPU, interval, numOfProcess, time))
+    env.run()
+
+    averageTime = statistics.mean(time)
+    desviation = statistics.stdev(time)
+
+    return averageTime, desviation
+
+processList = [25, 50, 100, 150, 200]
+interval = 10
+
+averageTimeList = []
+
+for n in processList:
+    averageTime, desviation = runSimulation(n, interval)
+    print(f"Procesos: {n}")
+    print(f"Promedio: {averageTime:.2f}")
+    print(f"Desviación estándar: {desviation:.2f}")
+    print("-----------------------------")
+    averageTimeList.append(averageTime)
+
+
+# Gráfica
+plt.plot(processList, averageTimeList)
+plt.xlabel("Número de procesos")
+plt.ylabel("Tiempo promedio")
+plt.title("Procesos vs Tiempo Promedio")
+plt.show()
